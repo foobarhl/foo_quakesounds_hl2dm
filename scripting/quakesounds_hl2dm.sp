@@ -58,6 +58,7 @@ new Handle:cvarTextDefault = INVALID_HANDLE;
 new Handle:cvarSoundDefault = INVALID_HANDLE;
 new Handle:cvarVolume = INVALID_HANDLE;
 new Handle:cvarMp = INVALID_HANDLE;
+new Handle:cvarDebug = INVALID_HANDLE;
 
 new iMaxClients;
 
@@ -99,6 +100,8 @@ public OnPluginStart()
 	cvarTextDefault = CreateConVar("sm_quakesounds_text", "1", "Default text setting for new users");
 	cvarSoundDefault = CreateConVar("sm_quakesounds_sound", "1", "Default sound for new users, 1=Standard, 2=Female, 0=Disabled");
 	cvarVolume = CreateConVar("sm_quakesounds_volume", "1.0", "Volume: should be a number between 0.0. and 1.0");
+	cvarDebug = CreateConVar("sm_quakesounds_debug", "0", "Print out debugging");
+
 	cvarMp = FindConVar("mp_teamplay");
 
 	if(GetConVarBool(cvarEnabled)) 
@@ -170,8 +173,11 @@ public OnPluginStart()
 public OnAllPluginsLoaded()
 {
 	for(new i = 1; i <= MaxClients; i++){
-		if(!IsClientConnected(i) && IsClientInGame(i) && !IsFakeClient(i)){
+		if(( IsClientConnected(i) && IsClientInGame(i)) && !IsFakeClient(i)){
+			decho(0, "OnTraceAttack hook %d", i);
 			SDKHook(i, SDKHook_TraceAttackPost, OnTraceAttack);
+		} else {
+			decho(0, "Bogus client %d", i);
 		}
 	}
 }
@@ -488,8 +494,10 @@ public EventPlayerHurt(Handle:event, const String:name[], bool:dontBroadcast)
 #if defined HL2DM
 public OnTraceAttack(victim, attacker, inflictor, Float:damage, damagetype, ammotype, hitbox, hitgroup)
 {
+	decho(attacker, "OnTraceAttack: hitgroup=%d hitbox=%d",hitgroup,hitbox);
+	
 	if (hitgroup > 0 && attacker > 0 && attacker <= MaxClients && victim > 0 && victim <= MaxClients){
-		PrintToServer("quakesounds_hl2dm: hitgroup=%d hitbox=%d",hitgroup,hitbox);
+
 		hurtHitGroup[victim] = hitgroup;
 	}
 }
@@ -541,6 +549,7 @@ public EventPlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 				new bool:headshot = (hurtHitGroup[victimClient] == 1);			
 			#elseif defined HL2DM
 				new bool:headshot = (hurtHitGroup[victimClient] == 1);
+				decho(attackerClient,"headshot: %d hitgroup=%d", headshot, hurtHitGroup[victimClient]);
 			#else
 				new bool:headshot = false;
 			#endif		
@@ -618,6 +627,8 @@ public EventPlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 			}
 			#endif
 		}
+	} else {
+		
 	}
 	
 	#if defined DODS
@@ -629,10 +640,14 @@ public EventPlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 	consecutiveKills[victimClient] = 0;
 	
 	// Play the appropriate sound if there was a reason to do so 
+
 	if(soundId != -1) 
 	{
+		decho(attackerClient,"a: soundId=%d", soundId);
 		PlayQuakeSound(soundId, killsValue, attackerClient, victimClient);
 		PrintQuakeText(soundId, killsValue, attackerClient, victimClient);
+	} else {
+		decho(attackerClient,"b: soundId=%d", soundId);		
 	}
 }
 
@@ -642,6 +657,7 @@ public PlayQuakeSound(soundKey, killsValue, attackerClient, victimClient)
 	new config = settingConfig[soundKey][killsValue];
 	new filePosition;
 
+	decho(attackerClient,"config=%d, soundKey=%d, killsValue=%d, attackerClient=%d, victimClient=%d", config, soundKey, killsValue, attackerClient, victimClient);
 	if(config & 1) 
 	{
 		for (new i = 1; i <= iMaxClients; i++)
@@ -651,7 +667,10 @@ public PlayQuakeSound(soundKey, killsValue, attackerClient, victimClient)
 				filePosition = soundsList[soundKey][killsValue][soundPreference[i]];
 				if(filePosition>-1)
 				{
+					decho(attackerClient,"config & 1 EmitSoundToClient(%d,%s)", i, soundsFiles[filePosition]);
 					EmitSoundToClient(i, soundsFiles[filePosition], _, _, _, _, GetConVarFloat(cvarVolume));
+				} else {
+					decho(attackerClient,"config & 1 filePosition %d", filePosition);
 				}
 			}
 		}
@@ -665,7 +684,10 @@ public PlayQuakeSound(soundKey, killsValue, attackerClient, victimClient)
 			filePosition = soundsList[soundKey][killsValue][soundPreference[attackerClient]];
 			if(filePosition>-1)
 			{
+				decho(attackerClient,"config & 2 EmitSoundToClient(%d,%s)", attackerClient, soundsFiles[filePosition]);
 				EmitSoundToClient(attackerClient, soundsFiles[filePosition], _, _, _, _, volumeLevel);
+			} else {
+				decho(attackerClient,"config & 2 filePosition %d", filePosition);
 			}
 		}
 		if(config & 4 && soundPreference[victimClient]>-1)
@@ -673,7 +695,10 @@ public PlayQuakeSound(soundKey, killsValue, attackerClient, victimClient)
 			filePosition = soundsList[soundKey][killsValue][soundPreference[victimClient]];
 			if(filePosition>-1)
 			{
+				decho(attackerClient,"config & 4 EmitSoundToClient(%d,%s)", victimClient, soundsFiles[filePosition]);
 				EmitSoundToClient(victimClient, soundsFiles[filePosition], _, _, _, _, volumeLevel);
+			} else {
+				decho(attackerClient,"config & 4 filePosition %d", filePosition);
 			}
 		}		
 	}
@@ -832,3 +857,21 @@ ShowQuakeMenu(client)
 
 	DisplayMenu(menu, client, 20);
 }
+
+stock decho(dest, const String:myString[], any:...)
+{
+	if(GetConVarInt(cvarDebug) == 0 ){
+		return;
+	}
+
+	decl String:myFormattedString[1024];
+	VFormat(myFormattedString, sizeof(myFormattedString), myString, 3);
+ 
+	if(dest==0){
+		PrintToServer("quakesounds_hl2dm: %s",  myFormattedString);
+	} else {
+		PrintToChat(dest, "quakesounds_hl2dm: %s", myFormattedString);
+	}
+	
+}
+
