@@ -1,4 +1,5 @@
-foo_quakesounds_hl2dm
+foo_quakesounds_hl2dm 
 =====================
 
-[foo] bar's quakesounds_hl2dm branch
+This is [foo] bar's version of quakesounds_hl2dm, forked from 2.7.5 (https://forums.alliedmods.net/showthread.php?t=91385).
+
