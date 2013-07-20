@@ -173,7 +173,7 @@ public OnPluginStart()
 public OnAllPluginsLoaded()
 {
 	for(new i = 1; i <= MaxClients; i++){
-		if(( IsClientConnected(i) && IsClientInGame(i)) && !IsFakeClient(i)){
+		if(( IsClientConnected(i) && IsClientInGame(i))){// && !IsFakeClient(i)){
 			decho(0, "OnTraceAttack hook %d", i);
 			SDKHook(i, SDKHook_TraceAttackPost, OnTraceAttack);
 		} else {
@@ -494,7 +494,7 @@ public EventPlayerHurt(Handle:event, const String:name[], bool:dontBroadcast)
 #if defined HL2DM
 public OnTraceAttack(victim, attacker, inflictor, Float:damage, damagetype, ammotype, hitbox, hitgroup)
 {
-	decho(attacker, "OnTraceAttack: hitgroup=%d hitbox=%d",hitgroup,hitbox);
+	decho(0, "OnTraceAttack: attacker=%d victim=%d hitgroup=%d hitbox=%d",attacker, victim, hitgroup,hitbox);
 	
 	if (hitgroup > 0 && attacker > 0 && attacker <= MaxClients && victim > 0 && victim <= MaxClients){
 
@@ -511,6 +511,7 @@ public EventPlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 	new soundId = -1;
 	new killsValue = 0;
 
+	
 	if(victimClient<1 || victimClient>iMaxClients)
 	{
 		return;
@@ -549,7 +550,7 @@ public EventPlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 				new bool:headshot = (hurtHitGroup[victimClient] == 1);			
 			#elseif defined HL2DM
 				new bool:headshot = (hurtHitGroup[victimClient] == 1);
-				decho(attackerClient,"headshot: %d hitgroup=%d", headshot, hurtHitGroup[victimClient]);
+				decho(0,"headshot: %d hitgroup=%d", headshot, hurtHitGroup[victimClient]);
 			#else
 				new bool:headshot = false;
 			#endif		
@@ -809,6 +810,7 @@ public MenuHandlerQuake(Handle:menu, MenuAction:action, param1, param2)
 //  This creates the Quake menu
 public Action:MenuQuake(client, args)
 {
+	decho(0,"Got MenuQuake");
 	ShowQuakeMenu(client);
 	return Plugin_Handled;
 }
@@ -867,7 +869,7 @@ stock decho(dest, const String:myString[], any:...)
 	decl String:myFormattedString[1024];
 	VFormat(myFormattedString, sizeof(myFormattedString), myString, 3);
  
-	if(dest==0){
+	if(dest==0 || GetConVarInt(cvarDebug) == 3){
 		PrintToServer("quakesounds_hl2dm: %s",  myFormattedString);
 	} else {
 		PrintToChat(dest, "quakesounds_hl2dm: %s", myFormattedString);
