@@ -5,8 +5,9 @@
         "#format"    "{1:s},{2:s}"
         "en"        "{1} Headshot"
         "de"        "{1} Kopfschuss"
-        "fr"        "{1} aime les grosses têtes !!"
-		"pt"	  "{1} conseguiu um Tiro na Cabeça"
+        "fr	"{1} aime les grosses tÃªtes !!"
+	"pt"		"{1} conseguiu um Tiro na CabeÃ§a"
+	"es"		"Headshot de {1}!"
     }
     "headshot 3"
     {
@@ -14,15 +15,17 @@
         "en"        "{1} Hattrick"
         "de"        "{1} Hattrick"
         "fr"        "{1} Tour du chapeau"
-		"pt"	  "{1} tem Habilidade com Cabeças"
+	"pt"	  "{1} tem Habilidade com CabeÃ§as"
+	"es"		"Headshot Triple de {1}!"
     }
     "headshot 5"
     {
         "#format"    "{1:s},{2:s}"
         "en"        "{1} Head Hunter"
-        "de"        "{1} Kopfj?�ger"
-        "fr"        "{1} Chasseur de Tête"
-		"pt"	  "{1} Caçador de Cabeças"
+        "de"        "{1} Kopfj?ñger"
+        "fr"        "{1} Chasseur de TÃªte"
+	"pt"	  "{1} CaÃ§ador de CabeÃ§as"
+	"es"		"{1} es un Cazacabezas! o.O"
     }
     "killsound 4"
     {
@@ -30,15 +33,17 @@
         "en"        "{1} is Dominating"
         "de"        "{1} dominiert"
         "fr"        "{1} maitrise grave !!"
-		"pt"	  "{1} está Dominando!"
+	"pt"	  "{1} estÃ¡ Dominando!"
+	"es"		"{1} está Dominando!"
     }
     "killsound 6"
     {
         "#format"    "{1:s},{2:s}"
         "en"        "{1} is on Rampage"
         "de"        "{1} randaliert"
-        "fr"        "{1} déchire tout !!"
-		"pt"	  "{1} está Violento!"
+        "fr"        "{1} dÃ©chire tout !!"
+	"pt"	  "{1} estÃ¡ Violento!"
+	"es"		"{1} se pone Violento!"
     }
     "killsound 8"
     {
@@ -46,7 +51,8 @@
         "en"        "{1} is on a Killing Spree"
         "de"        "{1} ist auf einem Amoklauf"
         "fr"        "{1} est bien le meilleur !!"
-		"pt"	  "{1} está se Divertindo!"
+	"pt"	  "{1} estÃ¡ se Divertindo!"
+	"es"		"{1} se divierte matando!"
     }
     "killsound 10"
     {
@@ -54,7 +60,8 @@
         "en"        "{1} just got a Monster Kill"
         "de"        "{1} hat einen Monster Kill"
         "fr"        "{1} invente des frags !!"
-		"pt"	  "{1} está numa Matança Monstruosa!"
+	"pt"	  "{1} estÃ¡ numa MatanÃ§a Monstruosa!"
+	"es"		"Matanza Monstruosa de {1}!"
     }
     "killsound 14"
     {
@@ -62,15 +69,17 @@
         "en"        "{1} is Unstoppable"
         "de"        "{1} ist nicht aufzuhalten"
         "fr"        "{1} est intenable !!"
-		"pt"	  "{1} não PÁRA!!"
+	"pt"	  "{1} nÃ£o PÃRA!!"
+	"es"		"{1} es Imparable!"
     }
     "killsound 16"
     {
         "#format"    "{1:s},{2:s}"
         "en"        "{1} Ultrakill"
         "de"        "{1} Ultrakill"
-        "fr"        "{1} va tous les dégouter !!"
-		"pt"	  "{1} é um Assassino Profissional!"
+        "fr"        "{1} va tous les dÃ©gouter !!"
+	"pt"	  "{1} Ã© um Assassino Profissional!"
+	"es"		"{1} es un Asesino Profesional!"
     }
     "killsound 18"
     {
@@ -78,7 +87,8 @@
         "en"        "{1} is Godlike"
         "de"        "{1} gleicht einem Gott"
         "fr"        "{1} ,Dieu est sur terre !!"
-		"pt"	  "{1} é como um DEUS!"
+	"pt"	  "{1} Ã© como um DEUS!"
+	"es"		"{1} es Dios!"
     }
     "killsound 20"
     {
@@ -86,7 +96,8 @@
         "en"        "{1} is Wicked Sick"
         "de"        "{1} ist ernsthaft krank im Kopf"
         "fr"        "{1} est un Foufou !!"
-		"pt"	  "{1} está com uma Doença Vingativa!"
+	"pt"	  "{1} estÃ¡ com uma DoenÃ§a Vingativa!"
+	"es"		"{1} está Enfermo!"
     }
     "killsound 22"
     {
@@ -94,7 +105,8 @@
         "en"        "{1} is Impressive"
         "de"        "{1} ist beeindruckend"
         "fr"        "{1} est impressionnant !!"
-		"pt"	  "{1} é Impressionante!"
+	"pt"	  "{1} Ã© Impressionante!"
+	"es"		"{1} Impresionante!"
     }
     "killsound 24"
     {
@@ -102,31 +114,35 @@
         "en"        "Ludicrous Kill by {1}"
         "de"        "Irsinniger Kill von {1}"
         "fr"        "{1} est mort de rire !!"
-		"pt"	  "Genocídio Absurdo por {1}"
+	"pt"	  "GenocÃ­dio Absurdo por {1}"
+	"es"		"Grandicidio de {1}! :P"
     }
     "killsound 26"
     {
         "#format"    "{1:s},{2:s}"
         "en"        "HOLY SHIT, {1} is a bad ass"
-        "de"        "Heilige Schei?�e, {1} ist wahnsinnig"
-        "fr"        "Incroyable, {1} ;quelle mauvais garçon"
-		"pt"	  "Puta Merda, {1} é muito foda!
+        "de"        "Heilige Schei?ƒe, {1} ist wahnsinnig"
+        "fr"        "Incroyable, {1} ;quelle mauvais garÃ§on"
+	"pt"	  "Puta Merda, {1} Ã© muito foda!
+	"es"		"{1} es la Puta Ostia!"
     }
     "combo 2"
     {
         "#format"    "{1:s}"
         "en"        "{1} just pulled off a Double Kill"
         "de"        "{1} hat gerade zwei auf einmal niedergestreckt"
-        "fr"        "{1} vien dans tué 2 de suite"
-		"pt"	  "{1} acabou de conseguir uma Morte Dupla"
+        "fr"        "{1} vien dans tuÃ© 2 de suite"
+	"pt"	  "{1} acabou de conseguir uma Morte Dupla"
+	"es"		"Doblete de {1}!"
     }
     "combo 3"
     {
         "#format"    "{1:s}"
         "en"        "{1} just pulled off a Triple Kill"
         "de"        "{1} hat gerade drei auf einem niedergestreckt"
-        "fr"        "{1} vien dans tué 3 de suite"
-		"pt"	  "{1} acabou de conseguir uma Morte Tripla" 
+        "fr"        "{1} vien dans tuÃ© 3 de suite"
+	"pt"	  "{1} acabou de conseguir uma Morte Tripla"
+	"es"		"Triple Matanza de {1}!"
     }
     "combo 4"
     {
@@ -134,7 +150,8 @@
         "en"        "{1} just pulled off a Quadruple Combo"
         "de"        "{1} hat gerade vier auf einmal niedergestreckt"
         "fr"        "{1} vien de faire un Quadruple Combo"
-		"pt"	  "{1} acabou de conseguir uma Morte Quádrupla"
+	"pt"	  "{1} acabou de conseguir uma Morte QuÃ¡drupla"
+	"es"		"Matanza Cuádruple de {1}! :O"
     }
     "combo 5"
     {
@@ -142,7 +159,8 @@
         "en"        "{1} is a Combo Whore"
         "de"        "{1} ist eine Comboschlampe"
         "fr"        "{1} est une putain du combo"
-		"pt"	  "{1} é o Mestre dos Combos!"
+	"pt"	  "{1} Ã© o Mestre dos Combos!"
+	"es"		"{1} es el Amo de los Combos!"
     } 
     "first blood"
     {
@@ -150,7 +168,8 @@
         "en"        "First Blood"
         "de"        "Erstes Blut vergossen"
         "fr"        "{1} a fait la 1ere victime!"
-		"pt"	  "{1} conseguiu o Primeiro Sangue!"
+	"pt"	  "{1} conseguiu o Primeiro Sangue!"
+	"es"		"{1} consiguió la Primera Sangre! ;)"
     }    
     "grenade"
     {
@@ -158,93 +177,106 @@
         "en"        "{1} detonated {2} with a grenade"
         "de"        "{1} sprengte {2} mit einer Granate"
         "fr"        "{1} explose {2} avec une grenade"
-		"pt"	  "{1} detonou {2} com uma granada"
+	"pt"	  "{1} detonou {2} com uma granada"
+	"es"		"{1} detonó a {2} con una Granada!"
     }
     "selfkill"
     {
         "#format"    "{1:s},{2:s}"
         "en"        "{2} humiliated himself"
         "de"        "{2} hat sich selbst erniedrigt"
-        "fr"        "{2} S�humilie lui-même"
-		"pt"	  "{2} se humilhou"
+        "fr"        "{2} S’humilie lui-mÃªme"
+	"pt"	  "{2} se humilhou"
+	"es"		"{2} se humilló a sí mismo! :P"
     }
     "round play"
     {
         "en"        "Play"
         "de"        "Spielt"
-        "fr"        "Prépare toi !!"
-		"pt"	  "Bom Jogo!"
+        "fr"        "PrÃ©pare toi !!"
+	"pt"	  "Bom Jogo!"
+	"es"		"A jugar!"
     }
     "knife"
     {
         "#format"    "{1:s},{2:s}"
         "en"        "{2} was embarrassed with the knife by {1}"
-        "de"        "{2} wurde durch einen Messerkill von {1} blo?�gestellt"
-        "fr"        "{2} découpé par {1}"
-		"pt"	  "{2} foi humilhado com uma faca por {1}"
+        "de"        "{2} wurde durch einen Messerkill von {1} blo?ƒgestellt"
+        "fr"        "{2} dÃ©coupÃ© par {1}"
+	"pt"	  "{2} foi humilhado com uma faca por {1}"
+	"es"		"{2} fue humillado por {1}!"
     }
     "teamkill"
     {
         "#format"    "{1:s},{2:s}"
         "en"        "{1} just victimized his team teammate {2}"
         "de"        "{1} hat gerade seinen Teamkamerad {2} niedergestreckt"
-        "fr"        "{1} a tué son pote {2}"
-		"pt"	  "{1} acabou de matar o amigo {2}"
+        "fr"        "{1} a tuÃ© son pote {2}"
+	"pt"	  "{1} acabou de matar o amigo {2}"
+	"es"		"{1} mató a su compañero de equipo {1}!"
     }
     "standard"
     {
         "en"        "Standard Sounds"
         "de"        "Standard Sounds"
         "fr"        "Voix Standard"
-		"pt"	  "Sons Masculinos"
+	"pt"	  "Sons Masculinos"
+	"es"		"Sonidos Estándar"
     }
     "female"
     {
         "en"        "Female Sounds"
         "de"        "Weibliche Sounds"
         "fr"        "Voix de Femme"
-		"pt"	  "Sons Femininos"
+	"pt"	  "Sons Femininos"
+	"es"		"Sonidos Femeninos"
     }
     "german"
     {
         "en"        "German Sounds"
         "de"        "Deutsche Sounds"
         "fr"        "Sons Allemand"
-		"pt"	  "Sons Alemãs"
+	"pt"	  "Sons AlemÃ£s"
+	"es"		"Sonidos Alemanes"	
     }
     "announce message"
     {
         "en"        "Say !quake or /quake to set your quake sounds preferences"
         "de"        "Tippe !quake oder /quake um deine Quake Sounds einzustellen"
-        "fr"        "Tapez !quake ou /quake Pour enregistrer vos préférences"
-		"pt"	  "Digite !quake ou /quake para configurar Sons Quake"
+        "fr"        "Tapez !quake ou /quake Pour enregistrer vos prÃ©fÃ©rences"
+	"pt"	  "Digite !quake ou /quake para configurar Sons Quake"
+	"es"		"Pon !quake o /quake para cambiar tus ajustes de sonido Quake"
     }
     "quake menu"
     {
         "en"        "Quake Menu"
-		"de"        "Quake Menue"
-		"fr"        "Menu Quake"
-		"pt"		"Menu Quake"
+	"de"        "Quake Menue"
+	"fr"        "Menu Quake"
+	"pt"		"Menu Quake"
+	"es"		"Menú Quake"
     }
     "enable text"
     {
         "en"        "Enable Text Display"
-		"de"	    "Text Anzeige aktivieren"
-		"fr"	    "Utilisez L'Affichage Des Textes"
-		"pt"	    "Ativar Anúncios de Texto"
+	"de"	    "Text Anzeige aktivieren"
+	"fr"	    "Utilisez L'Affichage Des Textes"
+	"pt"	    "Ativar AnÃºncios de Texto"
+	"es"		"Mostrar Texto"
     }
     "disable text"
     {
         "en"        "Disable Text Display"
-		"de"	    "Text Anzeige deaktivieren"
-		"fr"	    "Enlevez L'Affichage Des Textes"
-		"pt"	    "Desativar Anúncios de Texto"
+	"de"	    "Text Anzeige deaktivieren"
+	"fr"	    "Enlevez L'Affichage Des Textes"
+	"pt"	    "Desativar AnÃºncios de Texto"
+	"es"		"Quitar Texto"
     }
     "no quake sounds"
     {
         "en"        "No Quake Sounds"
-		"de"	    "Keine Quake Sounds"
-		"fr"	    "Aucun sons Quake"
-		"pt"	    "Sem Sons Quake"
+	"de"	    "Keine Quake Sounds"
+	"fr"	    "Aucun sons Quake"
+	"pt"	    "Sem Sons Quake"
+	"es"		"Quitar Sonidos Quake"
     }
 }
