@@ -25,6 +25,7 @@
 		"de"		"{1} Kopfjäger"
 		"fr"		"{1} Chasseur de Tête"
 		"pt"		"{1} Caçador de Cabeças"
+		"es"		"{1} es un Cazacabezas!"
 	}
 	"killsound 4"
 	{
