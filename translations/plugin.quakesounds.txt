@@ -123,7 +123,7 @@
 		"en"		"HOLYSHIT, {1} is a bad ass"
 		"de"		"Heilige Scheiße, {1} ist wahnsinnig"
 		"fr"		"Incroyable, {1} ;quelle mauvais garçon"
-		"pt"		"Puta Merda, {1} é muito foda!
+		"pt"		"Puta Merda, {1} é muito foda!"
 		"es"		"{1} es la Puta Ostia!"
 	}
 	"combo 2"
