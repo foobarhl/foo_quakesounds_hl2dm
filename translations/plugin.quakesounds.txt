@@ -123,7 +123,7 @@
 		"en"		"HOLYSHIT, {1} is a bad ass"
 		"de"		"Heilige Scheiße, {1} ist wahnsinnig"
 		"fr"		"Incroyable, {1} ;quelle mauvais garçon"
-		"pt"		"Puta Merda, {1} é muito foda!
+		"pt"		"Puta Merda, {1} é muito foda!"
 		"es"		"{1} es la Puta Ostia!"
 	}
 	"combo 2"
@@ -141,7 +141,7 @@
 		"en"		"{1} just pulled off a Triple Kill"
 		"de"		"{1} hat gerade drei auf einem niedergestreckt"
 		"fr"		"{1} vien dans tué 3 de suite"
-		"pt"		"{1} acabou de conseguir uma Morte Tripla" 
+		"pt"		"{1} acabou de conseguir uma Morte Tripla"
 		"es"		"Triple Matanza de {1}!"
 	}
 	"combo 4"
@@ -237,15 +237,15 @@
 		"de"		"Deutsche Sounds"
 		"fr"		"Sons Allemand"
 		"pt"		"Sons Alemãs"
-		"es"		"Sonidos Alemanes"	
+		"es"		"Sonidos Alemanes"
 	}
 	"announce message"
 	{
 		"en"		"Say !quake or /quake to set your quake sounds preferences"
 		"de"		"Tippe !quake oder /quake um deine Quake Sounds einzustellen"
 		"fr"		"Tapez !quake ou /quake Pour enregistrer vos préférences"
-		"pt"		"Digite!quakeou/quakeparaconfigurarSonsQuake"
-		"es"		"Digite !quake ou /quake para configurar Sons Quake"
+		"pt"		"Digite !quake ou /quake para configurar Sons Quake"
+		"es"		"Escribe !quake o /quake para configurar los Sonidos Quake"
 	}
 	"quake menu"
 	{

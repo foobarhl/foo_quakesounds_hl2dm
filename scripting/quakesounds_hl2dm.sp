@@ -81,11 +81,10 @@ new Handle:cookieSoundPref;
 new bool:lateLoaded = false;
 
 // if the plugin was loaded late we have a bunch of initialization that needs to be done
-public bool:AskPluginLoad(Handle:myself, bool:late, String:error[], err_max)
+public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 {	
 	lateLoaded = late;
-	
-	return true;
+	return APLRes_Success;
 }
 
 public OnPluginStart()
@@ -95,7 +94,7 @@ public OnPluginStart()
 		
 	LoadTranslations("plugin.quakesounds");
 	
-	CreateConVar("sm_quakesounds_version", PLUGIN_VERSION, "Quake Sounds Version", FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY);
+	CreateConVar("sm_quakesounds_version", PLUGIN_VERSION, "Quake Sounds Version", FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY);
 	cvarAnnounce = CreateConVar("sm_quakesounds_announce", "1", "Announcement preferences");
 	cvarTextDefault = CreateConVar("sm_quakesounds_text", "1", "Default text setting for new users");
 	cvarSoundDefault = CreateConVar("sm_quakesounds_sound", "1", "Default sound for new users, 1=Standard, 2=Female, 0=Disabled");
@@ -140,7 +139,7 @@ public OnPluginStart()
     	
 	if (lateLoaded)
 	{		
-		iMaxClients=GetMaxClients();
+		iMaxClients=MaxClients;
 	
 		// First we need to do whatever we would have done at RoundStart()
 		NewRoundInitialization();
@@ -341,7 +340,7 @@ public LoadSounds()
 
 public OnMapStart()
 {
-	iMaxClients=GetMaxClients();
+	iMaxClients=MaxClients;
 
 	decl String:downloadFile[PLATFORM_MAX_PATH];
 	for(new i=0; i < numSounds; i++)
