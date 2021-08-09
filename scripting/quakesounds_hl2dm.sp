@@ -729,15 +729,20 @@ public PrintQuakeText(soundKey, killsValue, attackerClient, victimClient)
 	}
 	
 	decl String:translationName[65];
-	if(killsValue>0)
+	new len = strcopy(translationName, sizeof(translationName), typeNames[soundKey]);
+
+	if (killsValue > 0)
 	{
-		Format(translationName, 65, "%s %i", typeNames[soundKey], killsValue);
+		FormatEx(translationName[len], sizeof(translationName) - len, " %i", killsValue);
+
+#if (SOURCEMOD_V_MINOR > 6)
+		if (!TranslationPhraseExists(translationName))
+		{
+			translationName[len] = '\0';
+		}
+#endif // (SOURCEMOD_V_MAJOR > 6)
 	}
-	else
-	{
-		Format(translationName, 65, "%s", typeNames[soundKey]);
-	}
-	
+
 	new config = settingConfig[soundKey][killsValue];
 
 	if(config & 8) 
