@@ -875,4 +875,3 @@ stock decho(dest, const String:myString[], any:...)
 	}
 	
 }
-
