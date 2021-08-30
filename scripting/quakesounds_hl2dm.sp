@@ -35,7 +35,7 @@ static const String:typeNames[NUM_TYPES][] = {"headshot", "grenade", "selfkill",
 
 #define MAX_NUM_KILLS 200
 new settingConfig[NUM_TYPES][MAX_NUM_KILLS];
-new soundsList[NUM_TYPES][MAX_NUM_KILLS][MAX_NUM_SETS];
+new Handle:soundLists[NUM_TYPES][MAX_NUM_KILLS][MAX_NUM_SETS];
 
 #define MAX_NUM_FILES 102
 new numSounds = 0;
@@ -283,63 +283,75 @@ public LoadSounds()
 				do
 				{
 					KvGetSectionName(kvQSL, buffer, sizeof(buffer));
-					new settingKills = StringToInt(buffer);
-					new tempConfig = KvGetNum(kvQSL, "config", 9);
-					if(!StrEqual(buffer, "") && settingKills>-1 && settingKills<MAX_NUM_KILLS && tempConfig>0)
-					{						
-						settingConfig[typeKey][settingKills] = tempConfig;
-							
-						if((tempConfig & 1) || (tempConfig & 2) || (tempConfig & 4))
-						{
-							for(new set = 0; set < numSets; set++)
-							{							
-								KvGetString(kvQSL, setsName[set], soundsFiles[numSounds], PLATFORM_MAX_PATH);
-								if(StrEqual(soundsFiles[numSounds], ""))
-								{
-									soundsList[typeKey][settingKills][set] = -1;
-								}	
-								else
-								{
-									soundsList[typeKey][settingKills][set] = numSounds;
-									numSounds++;								
-								}
-							}						
-						}
-					}									
-				} while (KvGotoNextKey(kvQSL));	
-				
-				KvGoBack(kvQSL);
+
+					if (buffer[0] != '\0')
+					{
+						LoadSoundSets(kvQSL, typeKey, StringToInt(buffer));
+					}
+				}
+				while(KvGotoNextKey(kvQSL));
 			}
 			else
 			{
-				new settingKills = KvGetNum(kvQSL, "kills", 0);
-				new tempConfig = KvGetNum(kvQSL, "config", 9);
-				if(settingKills>-1 && settingKills<MAX_NUM_KILLS && tempConfig>0)
-				{
-					settingConfig[typeKey][settingKills] = tempConfig;
-							
-					if((tempConfig & 1) || (tempConfig & 2) || (tempConfig & 4))
-					{
-						for(new set = 0; set < numSets; set++)
-						{
-							KvGetString(kvQSL, setsName[set], soundsFiles[numSounds], PLATFORM_MAX_PATH);
-							if(StrEqual(soundsFiles[numSounds], ""))
-							{
-								soundsList[typeKey][settingKills][set] = -1;
-							}		
-							else
-							{
-								soundsList[typeKey][settingKills][set] = numSounds;
-								numSounds++;							
-							}
-						}						
-					}
-				}				
+				LoadSoundSets(kvQSL, typeKey, KvGetNum(kvQSL, "kills"));
 			}
 		}
 	}
 
 	CloseHandle(kvQSL);
+}
+
+LoadSoundSets(Handle:kvQSL, typeKey, settingKills)
+{
+	new tempConfig = KvGetNum(kvQSL, "config", 9);
+
+	if (settingKills > -1 && settingKills < MAX_NUM_KILLS && tempConfig > 0)
+	{
+		settingConfig[typeKey][settingKills] = tempConfig;
+
+		if (tempConfig & 7)
+		{
+			for (new set; set < numSets; ++set)
+			{
+				if (KvJumpToKey(kvQSL, setsName[set]))
+				{
+					if (KvGotoFirstSubKey(kvQSL, false)) // Got multiple sounds?
+					{
+						do
+						{
+							LoadSoundFile(kvQSL, soundLists[typeKey][settingKills][set]);
+						}
+						while(KvGotoNextKey(kvQSL, false));
+
+						KvGoBack(kvQSL);
+					}
+					else
+					{
+						LoadSoundFile(kvQSL, soundLists[typeKey][settingKills][set]);
+					}
+
+					KvGoBack(kvQSL);
+				}
+			}
+		}
+	}
+}
+
+LoadSoundFile(Handle:kvQSL, &Handle:soundList)
+{
+	KvGetString(kvQSL, NULL_STRING, soundsFiles[numSounds], PLATFORM_MAX_PATH);
+
+	if (soundsFiles[numSounds][0] != '\0')
+	{
+		if (soundList == INVALID_HANDLE)
+		{
+			soundList = CreateArray();
+		}
+
+		PushArrayCell(soundList, numSounds++);
+		decho(0, "Loaded sound file #%i ('%s'). New soundrefs sublist size: %i.",
+			numSounds, soundsFiles[numSounds - 1], GetArraySize(soundList));
+	}
 }
 
 public OnMapStart()
@@ -421,13 +433,9 @@ public OnClientPutInServer(client)
 		}
 			
 		// Play event sound
-		if(settingConfig[JOINSERVER][NOT_BASED_ON_KILLS] && soundPreference[client]>-1)
+		if(settingConfig[JOINSERVER][NOT_BASED_ON_KILLS])
 		{
-			new filePosition = soundsList[JOINSERVER][NOT_BASED_ON_KILLS][soundPreference[client]];
-			if(filePosition>-1)
-			{			
-				EmitSoundToClient(client, soundsFiles[filePosition], _, _, _, _, GetConVarFloat(cvarVolume));
-			}
+			PlaySoundFile(client, JOINSERVER, NOT_BASED_ON_KILLS);
 		}
 
 		#if defined HL2DM
@@ -673,53 +681,52 @@ public EventPlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 // This plays the quake sounds based on soundPreference
 public PlayQuakeSound(soundKey, killsValue, attackerClient, victimClient)
 {
-	new config = settingConfig[soundKey][killsValue];
-	new filePosition;
-
+	new config = settingConfig[soundKey][killsValue], setsFileIndices[MAX_NUM_SETS] = { -1, ... };
 	decho(attackerClient,"config=%d, soundKey=%d, killsValue=%d, attackerClient=%d, victimClient=%d", config, soundKey, killsValue, attackerClient, victimClient);
+
 	if(config & 1) 
 	{
 		for (new i = 1; i <= iMaxClients; i++)
 		{
-			if(IsClientInGame(i) && !IsFakeClient(i) && soundPreference[i]>-1)
+			if(IsClientInGame(i) && !IsFakeClient(i))
 			{
-				filePosition = soundsList[soundKey][killsValue][soundPreference[i]];
-				if(filePosition>-1)
-				{
-					decho(attackerClient,"config & 1 EmitSoundToClient(%d,%s)", i, soundsFiles[filePosition]);
-					EmitSoundToClient(i, soundsFiles[filePosition], _, _, _, _, GetConVarFloat(cvarVolume));
-				} else {
-					decho(attackerClient,"config & 1 filePosition %d", filePosition);
-				}
+				PlaySoundFile(i, soundKey, killsValue, setsFileIndices);
 			}
 		}
 	}
 	else
 	{
-		new Float:volumeLevel = GetConVarFloat(cvarVolume);
-		
-		if(config & 2 && soundPreference[attackerClient]>-1)
+		if (config & 2)
 		{
-			filePosition = soundsList[soundKey][killsValue][soundPreference[attackerClient]];
-			if(filePosition>-1)
-			{
-				decho(attackerClient,"config & 2 EmitSoundToClient(%d,%s)", attackerClient, soundsFiles[filePosition]);
-				EmitSoundToClient(attackerClient, soundsFiles[filePosition], _, _, _, _, volumeLevel);
-			} else {
-				decho(attackerClient,"config & 2 filePosition %d", filePosition);
-			}
+			PlaySoundFile(attackerClient, soundKey, killsValue, setsFileIndices);
 		}
-		if(config & 4 && soundPreference[victimClient]>-1)
+
+		if (config & 4)
 		{
-			filePosition = soundsList[soundKey][killsValue][soundPreference[victimClient]];
-			if(filePosition>-1)
-			{
-				decho(attackerClient,"config & 4 EmitSoundToClient(%d,%s)", victimClient, soundsFiles[filePosition]);
-				EmitSoundToClient(victimClient, soundsFiles[filePosition], _, _, _, _, volumeLevel);
-			} else {
-				decho(attackerClient,"config & 4 filePosition %d", filePosition);
-			}
+			PlaySoundFile(victimClient, soundKey, killsValue, setsFileIndices);
 		}		
+	}
+}
+
+PlaySoundFile(client, soundKey, killsValue, setsFileIndices[MAX_NUM_SETS] = { -1, ... })
+{
+	if (soundPreference[client] > -1)
+	{
+		if (setsFileIndices[soundPreference[client]] == -1)
+		{
+			new Handle:soundList = soundLists[soundKey][killsValue][soundPreference[client]];
+
+			if (soundList == INVALID_HANDLE)
+			{
+				return;
+			}
+
+			setsFileIndices[soundPreference[client]] = GetArrayCell(soundList,
+				GetURandomInt() % GetArraySize(soundList));
+		}
+
+		EmitSoundToClient(client, soundsFiles[setsFileIndices[soundPreference[client]]],
+			_, _, _, _, GetConVarFloat(cvarVolume));
 	}
 }
 
