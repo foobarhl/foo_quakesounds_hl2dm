@@ -286,14 +286,21 @@ public LoadSounds()
 
 					if (buffer[0] != '\0')
 					{
-						LoadSoundSets(kvQSL, typeKey, StringToInt(buffer));
+						LoadSoundSets(kvQSL, typeKey, buffer);
 					}
 				}
 				while(KvGotoNextKey(kvQSL));
 			}
 			else
 			{
-				LoadSoundSets(kvQSL, typeKey, KvGetNum(kvQSL, "kills"));
+				KvGetString(kvQSL, "kills", buffer, sizeof(buffer));
+				decl String:settingKills[MAX_NUM_KILLS][8];
+
+				for (new i = ExplodeString(buffer, ",", settingKills, sizeof(settingKills), sizeof(settingKills[]));
+					--i >= 0;)
+				{
+					LoadSoundSets(kvQSL, typeKey, settingKills[i]);
+				}
 			}
 		}
 	}
@@ -301,9 +308,9 @@ public LoadSounds()
 	CloseHandle(kvQSL);
 }
 
-LoadSoundSets(Handle:kvQSL, typeKey, settingKills)
+LoadSoundSets(Handle:kvQSL, typeKey, String:settingKillsBuf[])
 {
-	new tempConfig = KvGetNum(kvQSL, "config", 9);
+	new settingKills = StringToInt(settingKillsBuf), tempConfig = KvGetNum(kvQSL, "config", 9);
 
 	if (settingKills > -1 && settingKills < MAX_NUM_KILLS && tempConfig > 0)
 	{
