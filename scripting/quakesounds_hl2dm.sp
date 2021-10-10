@@ -733,7 +733,7 @@ PlaySoundFile(client, soundKey, killsValue, setsFileIndices[MAX_NUM_SETS] = { -1
 		}
 
 		EmitSoundToClient(client, soundsFiles[setsFileIndices[soundPreference[client]]],
-			_, _, _, _, GetConVarFloat(cvarVolume));
+			_, _, _, SND_STOP, GetConVarFloat(cvarVolume));
 	}
 }
 
