@@ -191,7 +191,7 @@ public QuakePrefSelected(client, CookieMenuAction:action, any:info, String:buffe
 {
 	if (action == CookieMenuAction_SelectOption)
 	{
-		ShowQuakeMenu(client);
+		ShowQuakeMenu(client, true);
 	}
 }
 
@@ -836,8 +836,15 @@ public MenuHandlerQuake(Handle:menu, MenuAction:action, param1, param2)
 		IntToString(soundPreference[param1], buffer, 5);
 		SetClientCookie(param1, cookieSoundPref, buffer);
 		
-		MenuQuake(param1, 0);
-	} 
+		ShowQuakeMenu(param1, GetMenuExitBackButton(menu));
+	}
+	else if (action == MenuAction_Cancel)
+	{
+		if (param2 == MenuCancel_ExitBack)
+		{
+			ShowCookieMenu(param1);
+		}
+	}
 	else if(action == MenuAction_End)
 	{
 		CloseHandle(menu);
@@ -848,13 +855,14 @@ public MenuHandlerQuake(Handle:menu, MenuAction:action, param1, param2)
 public Action:MenuQuake(client, args)
 {
 	decho(0,"Got MenuQuake");
-	ShowQuakeMenu(client);
+	ShowQuakeMenu(client, false);
 	return Plugin_Handled;
 }
 
-ShowQuakeMenu(client)
+ShowQuakeMenu(client, bool:exitBackButton)
 {
 	new Handle:menu = CreateMenu(MenuHandlerQuake);
+	SetMenuExitBackButton(menu, exitBackButton);
 	decl String:buffer[100];
 	
 	Format(buffer, sizeof(buffer), "%T", "quake menu", client);
