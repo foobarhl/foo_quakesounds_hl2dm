@@ -72,10 +72,13 @@ new consecutiveKills[MAXPLAYERS + 1];
 new Float:lastKillTime[MAXPLAYERS + 1];
 new lastKillCount[MAXPLAYERS + 1];
 new headShotCount[MAXPLAYERS + 1];
-#if defined DODS 
+
+#if (defined DODS || defined HL2DM)
 new hurtHitGroup[MAXPLAYERS + 1];
-#elseif defined HL2DM
-new hurtHitGroup[MAXPLAYERS + 1];
+#endif
+
+#if (defined HL2DM)
+new deathInflictor[MAXPLAYERS + 1] = { INVALID_ENT_REFERENCE, ... };
 #endif
 
 new Handle:cookieTextPref;
@@ -178,7 +181,7 @@ public OnAllPluginsLoaded()
 		if(( IsClientConnected(i) && IsClientInGame(i))){// && !IsFakeClient(i)){
 			decho(0, "Hooking OnTraceAttack & OnTakeDamage for %d...", i);
 			SDKHook(i, SDKHook_TraceAttackPost, OnTraceAttack);
-			SDKHook(i, SDKHook_OnTakeDamagePost, OnTakeDamage);
+			SDKHook(i, SDKHook_OnTakeDamage, OnTakeDamage);
 		} else {
 			decho(0, "Bogus client %d", i);
 		}
@@ -399,11 +402,14 @@ public NewRoundInitialization()
 	{
 		headShotCount[i] = 0;
 		lastKillTime[i] = -1.0;
-		#if defined DODS
+
+#if (defined DODS || defined HL2DM)
 		hurtHitGroup[i] = HITGROUP_GENERIC;
-		#elseif defined HL2DM
-		hurtHitGroup[i] = HITGROUP_GENERIC;
-		#endif
+#endif
+
+#if (defined HL2DM)
+		deathInflictor[i] = INVALID_ENT_REFERENCE;
+#endif
 	}
 }
 
@@ -448,7 +454,7 @@ public OnClientPutInServer(client)
 		#if defined HL2DM
 		if(IsClientConnected(client)){
 			SDKHook(client, SDKHook_TraceAttackPost, OnTraceAttack);
-			SDKHook(client, SDKHook_OnTakeDamagePost, OnTakeDamage);
+			SDKHook(client, SDKHook_OnTakeDamage, OnTakeDamage);
 		}
 		#endif
 	}
@@ -518,17 +524,27 @@ public OnTraceAttack(victim, attacker, inflictor, Float:damage, damageType, ammo
 	hurtHitGroup[victim] = hitGroup;
 }
 
-public OnTakeDamage(victim, attacker, inflictor, Float:damage, damageType)
+public Action:OnTakeDamage(victim, &attacker, &inflictor, &Float:damage, &damageType)
 {
-	decho(0, "OnTakeDamage: attacker = %d, victim = %d, damageType = %d, damage = %f",
-		attacker, victim, damageType, damage);
+	decho(0, "OnTakeDamage: attacker = %d, victim = %d, inflictor = %d, damageType = %d, damage = %f",
+		attacker, victim, inflictor, damageType, damage);
 
-	// Prevent headshot events with non-hitscan weapons at death handler, possible otherwise
-	// as TraceAttack isn't called for these so the hitgroup fails to be updated as well
-	if (!(damageType & DMG_BULLET))
+	if (IsPlayerAlive(victim))
 	{
-		hurtHitGroup[victim] = HITGROUP_GENERIC;
+		// Prevent headshot events with non-hitscan weapons at death handler, possible otherwise
+		// as TraceAttack isn't called for these so the hitgroup fails to be updated as well
+		if (!(damageType & DMG_BULLET))
+		{
+			hurtHitGroup[victim] = HITGROUP_GENERIC;
+		}
+
+		if (damage >= GetClientHealth(victim))
+		{
+			deathInflictor[victim] = inflictor;
+		}
 	}
+
+	return Plugin_Continue;
 }
 #endif
 
@@ -536,11 +552,9 @@ public EventPlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 {	
 	new attackerClient = GetClientOfUserId(GetEventInt(event, "attacker"));
 	new victimClient = GetClientOfUserId(GetEventInt(event, "userid"));
-	
 	new soundId = -1;
 	new killsValue = 0;
 
-	
 	if(victimClient<1 || victimClient>iMaxClients)
 	{
 		return;
@@ -550,9 +564,16 @@ public EventPlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 	{
 		if(attackerClient == victimClient)
 		{
-			if(settingConfig[SELFKILL][NOT_BASED_ON_KILLS])
+#if (defined HL2DM)
+			// Prevent improper event activation cases such as suiciding
+			// via console or moving to spectator under teamplay on
+			if(deathInflictor[victimClient] > MaxClients)
+#endif
 			{
-				soundId = SELFKILL;
+				if(settingConfig[SELFKILL][NOT_BASED_ON_KILLS])
+				{
+					soundId = SELFKILL;
+				}
 			}
 		}
 		else if(GetClientTeam(attackerClient) == GetClientTeam(victimClient) && GetConVarBool(cvarMp) != false)
@@ -660,21 +681,20 @@ public EventPlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 				}
 			}
 		}
-	} else {
-		
 	}
-	
-	#if defined DODS
-		hurtHitGroup[victimClient] = HITGROUP_GENERIC;
-	#elseif defined HL2DM
-		hurtHitGroup[victimClient] = HITGROUP_GENERIC;
-	#endif
+
+#if (defined DODS || defined HL2DM)
+	hurtHitGroup[victimClient] = HITGROUP_GENERIC;
+#endif
+
+#if (defined HL2DM)
+	deathInflictor[victimClient] = INVALID_ENT_REFERENCE;
+#endif
 
 	consecutiveKills[victimClient] = 0;
 	headShotCount[victimClient] = 0;
 	
 	// Play the appropriate sound if there was a reason to do so 
-
 	if(soundId != -1) 
 	{
 		decho(attackerClient,"a: soundId=%d", soundId);
