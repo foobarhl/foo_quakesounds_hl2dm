@@ -84,6 +84,8 @@ new deathInflictor[MAXPLAYERS + 1] = { INVALID_ENT_REFERENCE, ... };
 new Handle:cookieTextPref;
 new Handle:cookieSoundPref;
 
+new Handle:greetedAuthIds = INVALID_HANDLE;
+
 new bool:lateLoaded = false;
 
 // if the plugin was loaded late we have a bunch of initialization that needs to be done
@@ -111,7 +113,8 @@ public OnPluginStart()
 
 	if(GetConVarBool(cvarEnabled)) 
 	{
-		HookEvent("player_death", EventPlayerDeath);		
+		HookEvent("player_death", EventPlayerDeath);
+		HookEvent("player_disconnect", EventPlayerDisconnect);
 		
 		#if defined CSS
 			HookEvent("round_freeze_end", EventRoundFreezeEnd, EventHookMode_PostNoCopy);
@@ -142,7 +145,9 @@ public OnPluginStart()
 	
 	//add to clientpref's built-in !settings menu
 	SetCookieMenuItem(QuakePrefSelected, 0, "Quake Sound Prefs");
-    	
+
+	greetedAuthIds = CreateTrie();
+
 	if (lateLoaded)
 	{		
 		iMaxClients=MaxClients;
@@ -207,6 +212,7 @@ public EnableChanged(Handle:convar, const String:oldValue[], const String:newVal
 	if(intNewValue == 1 && intOldValue == 0) 
 	{
 		HookEvent("player_death", EventPlayerDeath);
+		HookEvent("player_disconnect", EventPlayerDisconnect);
 
 		#if defined CSS
 			HookEvent("round_freeze_end", EventRoundFreezeEnd, EventHookMode_PostNoCopy);
@@ -227,6 +233,7 @@ public EnableChanged(Handle:convar, const String:oldValue[], const String:newVal
 	else if(intNewValue == 0 && intOldValue == 1) 
 	{
 		UnhookEvent("player_death", EventPlayerDeath);
+		UnhookEvent("player_disconnect", EventPlayerDisconnect);
 		
 		#if defined CSS
 			UnhookEvent("round_freeze_end", EventRoundFreezeEnd, EventHookMode_PostNoCopy);
@@ -444,11 +451,17 @@ public OnClientPutInServer(client)
 		{
 			CreateTimer(30.0, TimerAnnounce, client);
 		}
-			
+	
 		// Play event sound
 		if(settingConfig[JOINSERVER][NOT_BASED_ON_KILLS])
 		{
-			PlaySoundFile(client, JOINSERVER, NOT_BASED_ON_KILLS);
+			decl String:authId[64];
+			GetClientAuthId(client, AuthId_Engine, authId, sizeof(authId));
+
+			if (SetTrieValue(greetedAuthIds, authId, true, false))
+			{
+				PlaySoundFile(client, JOINSERVER, NOT_BASED_ON_KILLS);
+			}
 		}
 
 		#if defined HL2DM
@@ -702,6 +715,18 @@ public EventPlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 		PrintQuakeText(soundId, killsValue, attackerClient, victimClient);
 	} else {
 		decho(attackerClient,"b: soundId=%d", soundId);		
+	}
+}
+
+public EventPlayerDisconnect(Handle:event, const String:name[], bool:dontBroadcast)
+{
+	new client = GetClientOfUserId(GetEventInt(event, "userid"));
+
+	if (client > 0)
+	{
+		decl String:authId[64];
+		GetClientAuthId(client, AuthId_Engine, authId, sizeof(authId));
+		RemoveFromTrie(greetedAuthIds, authId);
 	}
 }
 
