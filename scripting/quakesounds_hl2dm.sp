@@ -449,7 +449,7 @@ public OnClientPutInServer(client)
 		// Make the announcement in 30 seconds unless announcements are turned off
 		if(GetConVarBool(cvarAnnounce))
 		{
-			CreateTimer(30.0, TimerAnnounce, client);
+			CreateTimer(30.0, TimerAnnounce, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
 		}
 	
 		// Play event sound
@@ -478,9 +478,11 @@ public OnClientPutInServer(client)
 	}
 }
 
-public Action:TimerAnnounce(Handle:timer, any:client)
+public Action:TimerAnnounce(Handle:timer, any:userId)
 {
-	if(IsClientInGame(client))
+	new client = GetClientOfUserId(userId);
+
+	if (client > 0)
 	{
 		PrintToChat(client, "%t", "announce message");
 	}
