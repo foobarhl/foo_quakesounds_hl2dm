@@ -1,6 +1,6 @@
 "Phrases"
 {
-	"headshot 1"
+	"headshot"
 	{
 		"#format"	"{1:s},{2:s}"
 		"en"		"{1} Headshot"

@@ -35,7 +35,7 @@ static const String:typeNames[NUM_TYPES][] = {"headshot", "grenade", "selfkill",
 
 #define MAX_NUM_KILLS 200
 new settingConfig[NUM_TYPES][MAX_NUM_KILLS];
-new soundsList[NUM_TYPES][MAX_NUM_KILLS][MAX_NUM_SETS];
+new Handle:soundLists[NUM_TYPES][MAX_NUM_KILLS][MAX_NUM_SETS];
 
 #define MAX_NUM_FILES 102
 new numSounds = 0;
@@ -51,6 +51,9 @@ new String:soundsFiles[MAX_NUM_FILES][PLATFORM_MAX_PATH];
 #define TEAMKILL 7
 #define COMBO 8
 #define JOINSERVER 9
+
+#define HITGROUP_GENERIC 0
+#define HITGROUP_HEAD    1
 
 new	Handle:cvarEnabled = INVALID_HANDLE;
 new Handle:cvarAnnounce = INVALID_HANDLE;
@@ -69,14 +72,19 @@ new consecutiveKills[MAXPLAYERS + 1];
 new Float:lastKillTime[MAXPLAYERS + 1];
 new lastKillCount[MAXPLAYERS + 1];
 new headShotCount[MAXPLAYERS + 1];
-#if defined DODS 
+
+#if (defined DODS || defined HL2DM)
 new hurtHitGroup[MAXPLAYERS + 1];
-#elseif defined HL2DM
-new hurtHitGroup[MAXPLAYERS + 1];
+#endif
+
+#if (defined HL2DM)
+new deathInflictor[MAXPLAYERS + 1] = { INVALID_ENT_REFERENCE, ... };
 #endif
 
 new Handle:cookieTextPref;
 new Handle:cookieSoundPref;
+
+new Handle:greetedAuthIds = INVALID_HANDLE;
 
 new bool:lateLoaded = false;
 
@@ -105,7 +113,8 @@ public OnPluginStart()
 
 	if(GetConVarBool(cvarEnabled)) 
 	{
-		HookEvent("player_death", EventPlayerDeath);		
+		HookEvent("player_death", EventPlayerDeath);
+		HookEvent("player_disconnect", EventPlayerDisconnect);
 		
 		#if defined CSS
 			HookEvent("round_freeze_end", EventRoundFreezeEnd, EventHookMode_PostNoCopy);
@@ -136,7 +145,9 @@ public OnPluginStart()
 	
 	//add to clientpref's built-in !settings menu
 	SetCookieMenuItem(QuakePrefSelected, 0, "Quake Sound Prefs");
-    	
+
+	greetedAuthIds = CreateTrie();
+
 	if (lateLoaded)
 	{		
 		iMaxClients=MaxClients;
@@ -173,8 +184,9 @@ public OnAllPluginsLoaded()
 {
 	for(new i = 1; i <= MaxClients; i++){
 		if(( IsClientConnected(i) && IsClientInGame(i))){// && !IsFakeClient(i)){
-			decho(0, "OnTraceAttack hook %d", i);
+			decho(0, "Hooking OnTraceAttack & OnTakeDamage for %d...", i);
 			SDKHook(i, SDKHook_TraceAttackPost, OnTraceAttack);
+			SDKHook(i, SDKHook_OnTakeDamage, OnTakeDamage);
 		} else {
 			decho(0, "Bogus client %d", i);
 		}
@@ -187,7 +199,7 @@ public QuakePrefSelected(client, CookieMenuAction:action, any:info, String:buffe
 {
 	if (action == CookieMenuAction_SelectOption)
 	{
-		ShowQuakeMenu(client);
+		ShowQuakeMenu(client, true);
 	}
 }
 
@@ -200,6 +212,7 @@ public EnableChanged(Handle:convar, const String:oldValue[], const String:newVal
 	if(intNewValue == 1 && intOldValue == 0) 
 	{
 		HookEvent("player_death", EventPlayerDeath);
+		HookEvent("player_disconnect", EventPlayerDisconnect);
 
 		#if defined CSS
 			HookEvent("round_freeze_end", EventRoundFreezeEnd, EventHookMode_PostNoCopy);
@@ -220,6 +233,7 @@ public EnableChanged(Handle:convar, const String:oldValue[], const String:newVal
 	else if(intNewValue == 0 && intOldValue == 1) 
 	{
 		UnhookEvent("player_death", EventPlayerDeath);
+		UnhookEvent("player_disconnect", EventPlayerDisconnect);
 		
 		#if defined CSS
 			UnhookEvent("round_freeze_end", EventRoundFreezeEnd, EventHookMode_PostNoCopy);
@@ -279,63 +293,82 @@ public LoadSounds()
 				do
 				{
 					KvGetSectionName(kvQSL, buffer, sizeof(buffer));
-					new settingKills = StringToInt(buffer);
-					new tempConfig = KvGetNum(kvQSL, "config", 9);
-					if(!StrEqual(buffer, "") && settingKills>-1 && settingKills<MAX_NUM_KILLS && tempConfig>0)
-					{						
-						settingConfig[typeKey][settingKills] = tempConfig;
-							
-						if((tempConfig & 1) || (tempConfig & 2) || (tempConfig & 4))
-						{
-							for(new set = 0; set < numSets; set++)
-							{							
-								KvGetString(kvQSL, setsName[set], soundsFiles[numSounds], PLATFORM_MAX_PATH);
-								if(StrEqual(soundsFiles[numSounds], ""))
-								{
-									soundsList[typeKey][settingKills][set] = -1;
-								}	
-								else
-								{
-									soundsList[typeKey][settingKills][set] = numSounds;
-									numSounds++;								
-								}
-							}						
-						}
-					}									
-				} while (KvGotoNextKey(kvQSL));	
-				
-				KvGoBack(kvQSL);
+
+					if (buffer[0] != '\0')
+					{
+						LoadSoundSets(kvQSL, typeKey, buffer);
+					}
+				}
+				while(KvGotoNextKey(kvQSL));
 			}
 			else
 			{
-				new settingKills = KvGetNum(kvQSL, "kills", 0);
-				new tempConfig = KvGetNum(kvQSL, "config", 9);
-				if(settingKills>-1 && settingKills<MAX_NUM_KILLS && tempConfig>0)
+				KvGetString(kvQSL, "kills", buffer, sizeof(buffer));
+				decl String:settingKills[MAX_NUM_KILLS][8];
+
+				for (new i = ExplodeString(buffer, ",", settingKills, sizeof(settingKills), sizeof(settingKills[]));
+					--i >= 0;)
 				{
-					settingConfig[typeKey][settingKills] = tempConfig;
-							
-					if((tempConfig & 1) || (tempConfig & 2) || (tempConfig & 4))
-					{
-						for(new set = 0; set < numSets; set++)
-						{
-							KvGetString(kvQSL, setsName[set], soundsFiles[numSounds], PLATFORM_MAX_PATH);
-							if(StrEqual(soundsFiles[numSounds], ""))
-							{
-								soundsList[typeKey][settingKills][set] = -1;
-							}		
-							else
-							{
-								soundsList[typeKey][settingKills][set] = numSounds;
-								numSounds++;							
-							}
-						}						
-					}
-				}				
+					LoadSoundSets(kvQSL, typeKey, settingKills[i]);
+				}
 			}
 		}
 	}
 
 	CloseHandle(kvQSL);
+}
+
+LoadSoundSets(Handle:kvQSL, typeKey, String:settingKillsBuf[])
+{
+	new settingKills = StringToInt(settingKillsBuf), tempConfig = KvGetNum(kvQSL, "config", 9);
+
+	if (settingKills > -1 && settingKills < MAX_NUM_KILLS && tempConfig > 0)
+	{
+		settingConfig[typeKey][settingKills] = tempConfig;
+
+		if (tempConfig & 7)
+		{
+			for (new set; set < numSets; ++set)
+			{
+				if (KvJumpToKey(kvQSL, setsName[set]))
+				{
+					if (KvGotoFirstSubKey(kvQSL, false)) // Got multiple sounds?
+					{
+						do
+						{
+							LoadSoundFile(kvQSL, soundLists[typeKey][settingKills][set]);
+						}
+						while(KvGotoNextKey(kvQSL, false));
+
+						KvGoBack(kvQSL);
+					}
+					else
+					{
+						LoadSoundFile(kvQSL, soundLists[typeKey][settingKills][set]);
+					}
+
+					KvGoBack(kvQSL);
+				}
+			}
+		}
+	}
+}
+
+LoadSoundFile(Handle:kvQSL, &Handle:soundList)
+{
+	KvGetString(kvQSL, NULL_STRING, soundsFiles[numSounds], PLATFORM_MAX_PATH);
+
+	if (soundsFiles[numSounds][0] != '\0')
+	{
+		if (soundList == INVALID_HANDLE)
+		{
+			soundList = CreateArray();
+		}
+
+		PushArrayCell(soundList, numSounds++);
+		decho(0, "Loaded sound file #%i ('%s'). New soundrefs sublist size: %i.",
+			numSounds, soundsFiles[numSounds - 1], GetArraySize(soundList));
+	}
 }
 
 public OnMapStart()
@@ -376,11 +409,14 @@ public NewRoundInitialization()
 	{
 		headShotCount[i] = 0;
 		lastKillTime[i] = -1.0;
-		#if defined DODS
-		hurtHitGroup[i] = 0;
-		#elseif defined HL2DM
-		hurtHitGroup[i] = 0;
-		#endif
+
+#if (defined DODS || defined HL2DM)
+		hurtHitGroup[i] = HITGROUP_GENERIC;
+#endif
+
+#if (defined HL2DM)
+		deathInflictor[i] = INVALID_ENT_REFERENCE;
+#endif
 	}
 }
 
@@ -413,22 +449,25 @@ public OnClientPutInServer(client)
 		// Make the announcement in 30 seconds unless announcements are turned off
 		if(GetConVarBool(cvarAnnounce))
 		{
-			CreateTimer(30.0, TimerAnnounce, client);
+			CreateTimer(30.0, TimerAnnounce, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
 		}
-			
+	
 		// Play event sound
-		if(settingConfig[JOINSERVER][NOT_BASED_ON_KILLS] && soundPreference[client]>-1)
+		if(settingConfig[JOINSERVER][NOT_BASED_ON_KILLS])
 		{
-			new filePosition = soundsList[JOINSERVER][NOT_BASED_ON_KILLS][soundPreference[client]];
-			if(filePosition>-1)
-			{			
-				EmitSoundToClient(client, soundsFiles[filePosition], _, _, _, _, GetConVarFloat(cvarVolume));
+			decl String:authId[64];
+			GetClientAuthId(client, AuthId_Engine, authId, sizeof(authId));
+
+			if (SetTrieValue(greetedAuthIds, authId, true, false))
+			{
+				PlaySoundFile(client, JOINSERVER, NOT_BASED_ON_KILLS);
 			}
 		}
 
 		#if defined HL2DM
 		if(IsClientConnected(client)){
-			SDKHook(client,SDKHook_TraceAttackPost,OnTraceAttack);
+			SDKHook(client, SDKHook_TraceAttackPost, OnTraceAttack);
+			SDKHook(client, SDKHook_OnTakeDamage, OnTakeDamage);
 		}
 		#endif
 	}
@@ -439,9 +478,11 @@ public OnClientPutInServer(client)
 	}
 }
 
-public Action:TimerAnnounce(Handle:timer, any:client)
+public Action:TimerAnnounce(Handle:timer, any:userId)
 {
-	if(IsClientInGame(client))
+	new client = GetClientOfUserId(userId);
+
+	if (client > 0)
 	{
 		PrintToChat(client, "%t", "announce message");
 	}
@@ -491,14 +532,34 @@ public EventPlayerHurt(Handle:event, const String:name[], bool:dontBroadcast)
 #endif
 
 #if defined HL2DM
-public OnTraceAttack(victim, attacker, inflictor, Float:damage, damagetype, ammotype, hitbox, hitgroup)
+public OnTraceAttack(victim, attacker, inflictor, Float:damage, damageType, ammoType, hitBox, hitGroup)
 {
-	decho(0, "OnTraceAttack: attacker=%d victim=%d hitgroup=%d hitbox=%d",attacker, victim, hitgroup,hitbox);
-	
-	if (hitgroup > 0 && attacker > 0 && attacker <= MaxClients && victim > 0 && victim <= MaxClients){
+	decho(0, "OnTraceAttack: attacker = %d, victim = %d, hitGroup = %d, hitBox = %d",
+		attacker, victim, hitGroup, hitBox);
+	hurtHitGroup[victim] = hitGroup;
+}
 
-		hurtHitGroup[victim] = hitgroup;
+public Action:OnTakeDamage(victim, &attacker, &inflictor, &Float:damage, &damageType)
+{
+	decho(0, "OnTakeDamage: attacker = %d, victim = %d, inflictor = %d, damageType = %d, damage = %f",
+		attacker, victim, inflictor, damageType, damage);
+
+	if (IsPlayerAlive(victim))
+	{
+		// Prevent headshot events with non-hitscan weapons at death handler, possible otherwise
+		// as TraceAttack isn't called for these so the hitgroup fails to be updated as well
+		if (!(damageType & DMG_BULLET))
+		{
+			hurtHitGroup[victim] = HITGROUP_GENERIC;
+		}
+
+		if (damage >= GetClientHealth(victim))
+		{
+			deathInflictor[victim] = inflictor;
+		}
 	}
+
+	return Plugin_Continue;
 }
 #endif
 
@@ -506,11 +567,9 @@ public EventPlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 {	
 	new attackerClient = GetClientOfUserId(GetEventInt(event, "attacker"));
 	new victimClient = GetClientOfUserId(GetEventInt(event, "userid"));
-	
 	new soundId = -1;
 	new killsValue = 0;
 
-	
 	if(victimClient<1 || victimClient>iMaxClients)
 	{
 		return;
@@ -520,9 +579,16 @@ public EventPlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 	{
 		if(attackerClient == victimClient)
 		{
-			if(settingConfig[SELFKILL][NOT_BASED_ON_KILLS])
+#if (defined HL2DM)
+			// Prevent improper event activation cases such as suiciding
+			// via console or moving to spectator under teamplay on
+			if(deathInflictor[victimClient] > MaxClients)
+#endif
 			{
-				soundId = SELFKILL;
+				if(settingConfig[SELFKILL][NOT_BASED_ON_KILLS])
+				{
+					soundId = SELFKILL;
+				}
 			}
 		}
 		else if(GetClientTeam(attackerClient) == GetClientTeam(victimClient) && GetConVarBool(cvarMp) != false)
@@ -546,9 +612,9 @@ public EventPlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 				new customkill = GetEventInt(event, "customkill");
 				new bool:headshot = (customkill == 1);
 			#elseif defined DODS
-				new bool:headshot = (hurtHitGroup[victimClient] == 1);			
+				new bool:headshot = (hurtHitGroup[victimClient] == HITGROUP_HEAD);			
 			#elseif defined HL2DM
-				new bool:headshot = (hurtHitGroup[victimClient] == 1);
+				new bool:headshot = (hurtHitGroup[victimClient] == HITGROUP_HEAD);
 				decho(0,"headshot: %d hitgroup=%d", headshot, hurtHitGroup[victimClient]);
 			#else
 				new bool:headshot = false;
@@ -584,15 +650,6 @@ public EventPlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 				soundId = COMBO;
 				killsValue = lastKillCount[attackerClient];
 			}
-			else if(headshot && settingConfig[HEADSHOT][headShotCount[attackerClient]])
-			{				
-				soundId = HEADSHOT;
-				killsValue = headShotCount[attackerClient];
-			}
-			else if(headshot && settingConfig[HEADSHOT][NOT_BASED_ON_KILLS])
-			{				
-				soundId = HEADSHOT;
-			}			
 			#if defined TF2
 			else if(customkill == 2 && settingConfig[KNIFE][NOT_BASED_ON_KILLS])
 			{
@@ -626,21 +683,33 @@ public EventPlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 				soundId = KNIFE;
 			}
 			#endif
+			else if (headshot)
+			{
+				if (settingConfig[HEADSHOT][headShotCount[attackerClient]])
+				{
+					soundId = HEADSHOT;
+					killsValue = headShotCount[attackerClient];
+				}
+				else if (settingConfig[HEADSHOT][NOT_BASED_ON_KILLS])
+				{
+					soundId = HEADSHOT;
+				}
+			}
 		}
-	} else {
-		
 	}
-	
-	#if defined DODS
-		hurtHitGroup[victimClient] = 0;
-	#elseif defined HL2DM
-		hurtHitGroup[victimClient] = 0;
-	#endif
+
+#if (defined DODS || defined HL2DM)
+	hurtHitGroup[victimClient] = HITGROUP_GENERIC;
+#endif
+
+#if (defined HL2DM)
+	deathInflictor[victimClient] = INVALID_ENT_REFERENCE;
+#endif
 
 	consecutiveKills[victimClient] = 0;
+	headShotCount[victimClient] = 0;
 	
 	// Play the appropriate sound if there was a reason to do so 
-
 	if(soundId != -1) 
 	{
 		decho(attackerClient,"a: soundId=%d", soundId);
@@ -651,56 +720,67 @@ public EventPlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 	}
 }
 
+public EventPlayerDisconnect(Handle:event, const String:name[], bool:dontBroadcast)
+{
+	new client = GetClientOfUserId(GetEventInt(event, "userid"));
+
+	if (client > 0)
+	{
+		decl String:authId[64];
+		GetClientAuthId(client, AuthId_Engine, authId, sizeof(authId));
+		RemoveFromTrie(greetedAuthIds, authId);
+	}
+}
+
 // This plays the quake sounds based on soundPreference
 public PlayQuakeSound(soundKey, killsValue, attackerClient, victimClient)
 {
-	new config = settingConfig[soundKey][killsValue];
-	new filePosition;
-
+	new config = settingConfig[soundKey][killsValue], setsFileIndices[MAX_NUM_SETS] = { -1, ... };
 	decho(attackerClient,"config=%d, soundKey=%d, killsValue=%d, attackerClient=%d, victimClient=%d", config, soundKey, killsValue, attackerClient, victimClient);
+
 	if(config & 1) 
 	{
 		for (new i = 1; i <= iMaxClients; i++)
 		{
-			if(IsClientInGame(i) && !IsFakeClient(i) && soundPreference[i]>-1)
+			if(IsClientInGame(i) && !IsFakeClient(i))
 			{
-				filePosition = soundsList[soundKey][killsValue][soundPreference[i]];
-				if(filePosition>-1)
-				{
-					decho(attackerClient,"config & 1 EmitSoundToClient(%d,%s)", i, soundsFiles[filePosition]);
-					EmitSoundToClient(i, soundsFiles[filePosition], _, _, _, _, GetConVarFloat(cvarVolume));
-				} else {
-					decho(attackerClient,"config & 1 filePosition %d", filePosition);
-				}
+				PlaySoundFile(i, soundKey, killsValue, setsFileIndices);
 			}
 		}
 	}
 	else
 	{
-		new Float:volumeLevel = GetConVarFloat(cvarVolume);
-		
-		if(config & 2 && soundPreference[attackerClient]>-1)
+		if (config & 2)
 		{
-			filePosition = soundsList[soundKey][killsValue][soundPreference[attackerClient]];
-			if(filePosition>-1)
-			{
-				decho(attackerClient,"config & 2 EmitSoundToClient(%d,%s)", attackerClient, soundsFiles[filePosition]);
-				EmitSoundToClient(attackerClient, soundsFiles[filePosition], _, _, _, _, volumeLevel);
-			} else {
-				decho(attackerClient,"config & 2 filePosition %d", filePosition);
-			}
+			PlaySoundFile(attackerClient, soundKey, killsValue, setsFileIndices);
 		}
-		if(config & 4 && soundPreference[victimClient]>-1)
+
+		if (config & 4)
 		{
-			filePosition = soundsList[soundKey][killsValue][soundPreference[victimClient]];
-			if(filePosition>-1)
-			{
-				decho(attackerClient,"config & 4 EmitSoundToClient(%d,%s)", victimClient, soundsFiles[filePosition]);
-				EmitSoundToClient(victimClient, soundsFiles[filePosition], _, _, _, _, volumeLevel);
-			} else {
-				decho(attackerClient,"config & 4 filePosition %d", filePosition);
-			}
+			PlaySoundFile(victimClient, soundKey, killsValue, setsFileIndices);
 		}		
+	}
+}
+
+PlaySoundFile(client, soundKey, killsValue, setsFileIndices[MAX_NUM_SETS] = { -1, ... })
+{
+	if (soundPreference[client] > -1)
+	{
+		if (setsFileIndices[soundPreference[client]] == -1)
+		{
+			new Handle:soundList = soundLists[soundKey][killsValue][soundPreference[client]];
+
+			if (soundList == INVALID_HANDLE)
+			{
+				return;
+			}
+
+			setsFileIndices[soundPreference[client]] = GetArrayCell(soundList,
+				GetURandomInt() % GetArraySize(soundList));
+		}
+
+		EmitSoundToClient(client, soundsFiles[setsFileIndices[soundPreference[client]]],
+			_, _, _, SND_STOP, GetConVarFloat(cvarVolume));
 	}
 }
 
@@ -729,15 +809,20 @@ public PrintQuakeText(soundKey, killsValue, attackerClient, victimClient)
 	}
 	
 	decl String:translationName[65];
-	if(killsValue>0)
+	new len = strcopy(translationName, sizeof(translationName), typeNames[soundKey]);
+
+	if (killsValue > 0)
 	{
-		Format(translationName, 65, "%s %i", typeNames[soundKey], killsValue);
+		FormatEx(translationName[len], sizeof(translationName) - len, " %i", killsValue);
+
+#if (SOURCEMOD_V_MINOR > 6)
+		if (!TranslationPhraseExists(translationName))
+		{
+			translationName[len] = '\0';
+		}
+#endif // (SOURCEMOD_V_MAJOR > 6)
 	}
-	else
-	{
-		Format(translationName, 65, "%s", typeNames[soundKey]);
-	}
-	
+
 	new config = settingConfig[soundKey][killsValue];
 
 	if(config & 8) 
@@ -798,8 +883,15 @@ public MenuHandlerQuake(Handle:menu, MenuAction:action, param1, param2)
 		IntToString(soundPreference[param1], buffer, 5);
 		SetClientCookie(param1, cookieSoundPref, buffer);
 		
-		MenuQuake(param1, 0);
-	} 
+		ShowQuakeMenu(param1, GetMenuExitBackButton(menu));
+	}
+	else if (action == MenuAction_Cancel)
+	{
+		if (param2 == MenuCancel_ExitBack)
+		{
+			ShowCookieMenu(param1);
+		}
+	}
 	else if(action == MenuAction_End)
 	{
 		CloseHandle(menu);
@@ -810,13 +902,14 @@ public MenuHandlerQuake(Handle:menu, MenuAction:action, param1, param2)
 public Action:MenuQuake(client, args)
 {
 	decho(0,"Got MenuQuake");
-	ShowQuakeMenu(client);
+	ShowQuakeMenu(client, false);
 	return Plugin_Handled;
 }
 
-ShowQuakeMenu(client)
+ShowQuakeMenu(client, bool:exitBackButton)
 {
 	new Handle:menu = CreateMenu(MenuHandlerQuake);
+	SetMenuExitBackButton(menu, exitBackButton);
 	decl String:buffer[100];
 	
 	Format(buffer, sizeof(buffer), "%T", "quake menu", client);
@@ -875,4 +968,3 @@ stock decho(dest, const String:myString[], any:...)
 	}
 	
 }
-
